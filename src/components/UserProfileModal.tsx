@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../types';
-import { X, Edit3, Check, AlertCircle } from 'lucide-react';
+import { X, Edit3, Check } from 'lucide-react';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -98,7 +98,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   if (!isOpen || !user) return null;
 
-  const currentStatusOption = STATUS_OPTIONS.find(opt => opt.value === status);
+  // const currentStatusOption = STATUS_OPTIONS.find(opt => opt.value === status);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

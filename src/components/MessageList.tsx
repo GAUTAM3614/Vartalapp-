@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Message, User } from '../types';
 import { format, isToday, isYesterday } from 'date-fns';
 import { MessageReactions } from './MessageReactions';
-import { MoreHorizontal, Edit, Trash2, Reply } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 
 interface MessageListProps {
   messages: Message[];

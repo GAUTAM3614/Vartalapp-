@@ -12,7 +12,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disab
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
 
   const handleSend = () => {
     const trimmedMessage = message.trim();
@@ -49,7 +49,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disab
         clearTimeout(typingTimeoutRef.current);
       }
       
-      typingTimeoutRef.current = setTimeout(() => {
+      typingTimeoutRef.current = window.setTimeout(() => {
         onTyping(false);
       }, 1000);
     }

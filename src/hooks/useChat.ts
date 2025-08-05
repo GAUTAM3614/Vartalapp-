@@ -382,11 +382,14 @@ export const useChat = () => {
             : prev.activeRoom,
         }));
 
-        // Show notification if not in active room or window is not focused
-        const room = prev.rooms.find(r => r.id === 'room-1');
-        if (room && (prev.activeRoom?.id !== 'room-1' || document.hidden)) {
-          showMessageNotification(randomUser.name, randomMessage, room.name);
-        }
+        setChatState(current => {
+          // Show notification if not in active room or window is not focused
+          const room = current.rooms.find(r => r.id === 'room-1');
+          if (room && (current.activeRoom?.id !== 'room-1' || document.hidden)) {
+            showMessageNotification(randomUser.name, randomMessage, room.name);
+          }
+          return current;
+        });
       }
     }, 5000);
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChatRoom, User } from '../types';
-import { MessageCircle, Users, Hash, Wifi, WifiOff } from 'lucide-react';
+import { Users, Hash, Wifi, WifiOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { UserProfileModal } from './UserProfileModal';
 
