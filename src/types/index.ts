@@ -4,6 +4,15 @@ export interface User {
   avatar?: string;
   isOnline: boolean;
   lastSeen?: Date;
+  status?: 'available' | 'busy' | 'away' | 'dnd';
+  statusMessage?: string;
+  isTyping?: boolean;
+}
+
+export interface Reaction {
+  emoji: string;
+  users: string[];
+  count: number;
 }
 
 export interface Message {
@@ -15,6 +24,11 @@ export interface Message {
   type: 'text' | 'image' | 'file';
   edited?: boolean;
   editedAt?: Date;
+  reactions?: Reaction[];
+  replyTo?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
 }
 
 export interface ChatRoom {
@@ -26,6 +40,7 @@ export interface ChatRoom {
   lastMessage?: Message;
   unreadCount: number;
   createdAt: Date;
+  isPrivate?: boolean;
 }
 
 export interface ChatState {
@@ -33,4 +48,13 @@ export interface ChatState {
   activeRoom: ChatRoom | null;
   rooms: ChatRoom[];
   isConnected: boolean;
+  typingUsers: { [roomId: string]: string[] };
+  searchQuery: string;
+  searchResults: Message[];
+  isDarkMode: boolean;
+}
+
+export interface NotificationPermission {
+  granted: boolean;
+  denied: boolean;
 }

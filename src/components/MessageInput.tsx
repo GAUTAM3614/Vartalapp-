@@ -1,14 +1,18 @@
-import React, { useState, useRef, KeyboardEvent } from 'react';
+import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
 import { Send, Smile, Paperclip } from 'lucide-react';
+import { EmojiPicker } from './EmojiPicker';
 
 interface MessageInputProps {
   onSendMessage: (content: string) => void;
   disabled?: boolean;
+  onTyping?: (isTyping: boolean) => void;
 }
 
-export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disabled = false }) => {
+export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disabled = false, onTyping }) => {
   const [message, setMessage] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSend = () => {
     const trimmedMessage = message.trim();
@@ -36,7 +40,44 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disab
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
+
+    // Handle typing indicator
+    if (onTyping) {
+      onTyping(true);
+      
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        onTyping(false);
+      }, 1000);
+    }
   };
+
+  const handleEmojiSelect = (emoji: string) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newMessage = message.slice(0, start) + emoji + message.slice(end);
+      setMessage(newMessage);
+      
+      // Focus back to textarea and set cursor position
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+      }, 0);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="border-t border-gray-200 bg-white p-4">
@@ -66,14 +107,24 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disab
           />
           
           {/* Emoji button */}
-          <button
-            type="button"
-            disabled={disabled}
-            className="absolute right-3 bottom-3 p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Add emoji"
-          >
-            <Smile className="w-5 h-5" />
-          </button>
+          <div className="absolute right-3 bottom-3">
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Add emoji"
+            >
+              <Smile className="w-5 h-5" />
+            </button>
+            
+            <EmojiPicker
+              isOpen={showEmojiPicker}
+              onClose={() => setShowEmojiPicker(false)}
+              onEmojiSelect={handleEmojiSelect}
+              position="top"
+            />
+          </div>
         </div>
 
         {/* Send button */}

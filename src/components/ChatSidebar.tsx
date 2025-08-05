@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChatRoom, User } from '../types';
 import { MessageCircle, Users, Hash, Wifi, WifiOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { UserProfileModal } from './UserProfileModal';
 
 interface ChatSidebarProps {
   rooms: ChatRoom[];
@@ -9,6 +10,7 @@ interface ChatSidebarProps {
   currentUser: User | null;
   isConnected: boolean;
   onRoomSelect: (roomId: string) => void;
+  onUpdateUser: (updates: Partial<User>) => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -17,7 +19,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   currentUser,
   isConnected,
   onRoomSelect,
+  onUpdateUser,
 }) => {
+  const [showProfileModal, setShowProfileModal] = useState(false);
   return (
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
       {/* Header */}
@@ -35,7 +39,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         
         {/* Current User */}
         {currentUser && (
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <button
+            onClick={() => setShowProfileModal(true)}
+            className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors w-full text-left"
+          >
             <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-semibold">
               {currentUser.avatar || currentUser.name.charAt(0).toUpperCase()}
             </div>
@@ -43,10 +50,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               <div className="font-medium text-gray-900">{currentUser.name}</div>
               <div className="flex items-center gap-1 text-sm text-green-600">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                Online
+                {currentUser.statusMessage || 'Online'}
               </div>
             </div>
-          </div>
+          </button>
         )}
       </div>
 
@@ -132,6 +139,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </div>
         )}
       </div>
+
+      {/* Profile Modal */}
+      <UserProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        user={currentUser}
+        onUpdateUser={onUpdateUser}
+      />
     </div>
   );
 };

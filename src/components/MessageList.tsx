@@ -1,14 +1,30 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Message, User } from '../types';
 import { format, isToday, isYesterday } from 'date-fns';
+import { MessageReactions } from './MessageReactions';
+import { MoreHorizontal, Edit, Trash2, Reply } from 'lucide-react';
 
 interface MessageListProps {
   messages: Message[];
   currentUser: User | null;
+  onAddReaction: (messageId: string, emoji: string) => void;
+  onRemoveReaction: (messageId: string, emoji: string) => void;
+  onEditMessage: (messageId: string, newContent: string) => void;
+  onDeleteMessage: (messageId: string) => void;
 }
 
-export const MessageList: React.FC<MessageListProps> = ({ messages, currentUser }) => {
+export const MessageList: React.FC<MessageListProps> = ({ 
+  messages, 
+  currentUser, 
+  onAddReaction, 
+  onRemoveReaction, 
+  onEditMessage, 
+  onDeleteMessage 
+}) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [hoveredMessage, setHoveredMessage] = useState<string | null>(null);
+  const [editingMessage, setEditingMessage] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,6 +73,24 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, currentUser 
 
   const messageGroups = groupMessagesByDate(messages);
 
+  const handleEditStart = (message: Message) => {
+    setEditingMessage(message.id);
+    setEditContent(message.content);
+  };
+
+  const handleEditSave = (messageId: string) => {
+    if (editContent.trim() && editContent !== messages.find(m => m.id === messageId)?.content) {
+      onEditMessage(messageId, editContent.trim());
+    }
+    setEditingMessage(null);
+    setEditContent('');
+  };
+
+  const handleEditCancel = () => {
+    setEditingMessage(null);
+    setEditContent('');
+  };
+
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500">
@@ -90,9 +124,11 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, currentUser 
               return (
                 <div
                   key={message.id}
-                  className={`flex items-end gap-3 animate-fade-in ${
+                  className={`flex items-end gap-3 animate-fade-in group ${
                     isCurrentUser ? 'flex-row-reverse' : 'flex-row'
                   }`}
+                  onMouseEnter={() => setHoveredMessage(message.id)}
+                  onMouseLeave={() => setHoveredMessage(null)}
                 >
                   {/* Avatar */}
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -106,7 +142,7 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, currentUser 
                   </div>
 
                   {/* Message bubble */}
-                  <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${
+                  <div className={`max-w-xs lg:max-w-md xl:max-w-lg relative ${
                     isCurrentUser ? 'ml-auto' : 'mr-auto'
                   }`}>
                     {/* Sender name and time */}
@@ -116,20 +152,115 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, currentUser 
                       </div>
                     )}
 
-                    <div className={`px-4 py-3 rounded-2xl ${
+                    <div className={`px-4 py-3 rounded-2xl relative ${
                       isCurrentUser
                         ? 'bg-primary-500 text-white rounded-br-md'
                         : 'bg-gray-100 text-gray-900 rounded-bl-md'
                     }`}>
-                      <div className="break-words">{message.content}</div>
-                      {message.edited && (
-                        <div className={`text-xs mt-1 ${
-                          isCurrentUser ? 'text-primary-100' : 'text-gray-500'
-                        }`}>
-                          (edited)
+                      {editingMessage === message.id ? (
+                        <div className="space-y-2">
+                          <textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="w-full bg-transparent border border-gray-300 rounded px-2 py-1 text-gray-900 resize-none"
+                            rows={2}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleEditSave(message.id);
+                              } else if (e.key === 'Escape') {
+                                handleEditCancel();
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <div className="flex gap-2 text-xs">
+                            <button
+                              onClick={() => handleEditSave(message.id)}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={handleEditCancel}
+                              className="text-gray-500 hover:text-gray-600"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="break-words">{message.content}</div>
+                          {message.edited && (
+                            <div className={`text-xs mt-1 ${
+                              isCurrentUser ? 'text-primary-100' : 'text-gray-500'
+                            }`}>
+                              (edited)
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Message actions */}
+                      {hoveredMessage === message.id && editingMessage !== message.id && (
+                        <div className={`absolute top-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+                          isCurrentUser ? 'right-0 -translate-x-2' : 'left-0 translate-x-2'
+                        } -translate-y-8`}>
+                          <div className="bg-white border border-gray-200 rounded-lg shadow-lg flex">
+                            <button
+                              onClick={() => onAddReaction(message.id, '👍')}
+                              className="p-1 hover:bg-gray-100 text-sm"
+                              title="Add reaction"
+                            >
+                              👍
+                            </button>
+                            <button
+                              onClick={() => onAddReaction(message.id, '❤️')}
+                              className="p-1 hover:bg-gray-100 text-sm"
+                              title="Add reaction"
+                            >
+                              ❤️
+                            </button>
+                            <button
+                              onClick={() => onAddReaction(message.id, '😂')}
+                              className="p-1 hover:bg-gray-100 text-sm"
+                              title="Add reaction"
+                            >
+                              😂
+                            </button>
+                            {isCurrentUser && (
+                              <>
+                                <button
+                                  onClick={() => handleEditStart(message)}
+                                  className="p-1 hover:bg-gray-100 text-gray-600"
+                                  title="Edit message"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => onDeleteMessage(message.id)}
+                                  className="p-1 hover:bg-gray-100 text-red-600"
+                                  title="Delete message"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
+
+                    {/* Reactions */}
+                    {message.reactions && message.reactions.length > 0 && (
+                      <MessageReactions
+                        reactions={message.reactions}
+                        currentUserId={currentUser?.id || ''}
+                        onAddReaction={(emoji) => onAddReaction(message.id, emoji)}
+                        onRemoveReaction={(emoji) => onRemoveReaction(message.id, emoji)}
+                      />
+                    )}
 
                     {/* Timestamp */}
                     <div className={`text-xs text-gray-500 mt-1 px-1 ${

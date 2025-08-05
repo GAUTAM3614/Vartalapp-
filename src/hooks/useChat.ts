@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ChatState, ChatRoom, Message, User } from '../types';
+import { ChatState, ChatRoom, Message, User, Reaction } from '../types';
+import { showMessageNotification } from '../utils/notifications';
 
 // Mock data for demonstration
 const mockUser: User = {
@@ -44,6 +45,10 @@ const mockRooms: ChatRoom[] = [
         senderName: 'Alice Johnson',
         timestamp: new Date(Date.now() - 3600000),
         type: 'text',
+        reactions: [
+          { emoji: '👍', users: ['user-1', 'user-3'], count: 2 },
+          { emoji: '🎉', users: ['user-1'], count: 1 }
+        ],
       },
       {
         id: 'msg-2',
@@ -60,6 +65,9 @@ const mockRooms: ChatRoom[] = [
         senderName: 'Carol Davis',
         timestamp: new Date(Date.now() - 900000),
         type: 'text',
+        reactions: [
+          { emoji: '❤️', users: ['user-1', 'user-2'], count: 2 }
+        ],
       },
     ],
     unreadCount: 0,
@@ -91,6 +99,10 @@ export const useChat = () => {
     activeRoom: mockRooms[0],
     rooms: mockRooms,
     isConnected: true,
+    typingUsers: {},
+    searchQuery: '',
+    searchResults: [],
+    isDarkMode: false,
   });
 
   const sendMessage = useCallback((content: string) => {
@@ -152,6 +164,176 @@ export const useChat = () => {
     }));
   }, []);
 
+  const updateUser = useCallback((updates: Partial<User>) => {
+    setChatState(prev => ({
+      ...prev,
+      currentUser: prev.currentUser
+        ? { ...prev.currentUser, ...updates }
+        : null,
+    }));
+  }, []);
+
+  const addReaction = useCallback((messageId: string, emoji: string) => {
+    if (!chatState.currentUser || !chatState.activeRoom) return;
+
+    setChatState(prev => ({
+      ...prev,
+      rooms: prev.rooms.map(room =>
+        room.id === prev.activeRoom?.id
+          ? {
+              ...room,
+              messages: room.messages.map(message =>
+                message.id === messageId
+                  ? {
+                      ...message,
+                      reactions: updateReactions(message.reactions || [], emoji, prev.currentUser!.id, true),
+                    }
+                  : message
+              ),
+            }
+          : room
+      ),
+      activeRoom: prev.activeRoom
+        ? {
+            ...prev.activeRoom,
+            messages: prev.activeRoom.messages.map(message =>
+              message.id === messageId
+                ? {
+                    ...message,
+                    reactions: updateReactions(message.reactions || [], emoji, prev.currentUser!.id, true),
+                  }
+                : message
+            ),
+          }
+        : null,
+    }));
+  }, [chatState.currentUser, chatState.activeRoom]);
+
+  const removeReaction = useCallback((messageId: string, emoji: string) => {
+    if (!chatState.currentUser || !chatState.activeRoom) return;
+
+    setChatState(prev => ({
+      ...prev,
+      rooms: prev.rooms.map(room =>
+        room.id === prev.activeRoom?.id
+          ? {
+              ...room,
+              messages: room.messages.map(message =>
+                message.id === messageId
+                  ? {
+                      ...message,
+                      reactions: updateReactions(message.reactions || [], emoji, prev.currentUser!.id, false),
+                    }
+                  : message
+              ),
+            }
+          : room
+      ),
+      activeRoom: prev.activeRoom
+        ? {
+            ...prev.activeRoom,
+            messages: prev.activeRoom.messages.map(message =>
+              message.id === messageId
+                ? {
+                    ...message,
+                    reactions: updateReactions(message.reactions || [], emoji, prev.currentUser!.id, false),
+                  }
+                : message
+            ),
+          }
+        : null,
+    }));
+  }, [chatState.currentUser, chatState.activeRoom]);
+
+  const setTyping = useCallback((isTyping: boolean) => {
+    if (!chatState.activeRoom || !chatState.currentUser) return;
+
+    setChatState(prev => ({
+      ...prev,
+      typingUsers: {
+        ...prev.typingUsers,
+        [prev.activeRoom!.id]: isTyping
+          ? [...(prev.typingUsers[prev.activeRoom!.id] || []), prev.currentUser!.name]
+          : (prev.typingUsers[prev.activeRoom!.id] || []).filter(name => name !== prev.currentUser!.name),
+      },
+    }));
+
+    if (isTyping) {
+      setTimeout(() => {
+        setChatState(current => ({
+          ...current,
+          typingUsers: {
+            ...current.typingUsers,
+            [chatState.activeRoom!.id]: (current.typingUsers[chatState.activeRoom!.id] || [])
+              .filter(name => name !== chatState.currentUser!.name),
+          },
+        }));
+      }, 3000);
+    }
+  }, [chatState.activeRoom, chatState.currentUser]);
+
+  const editMessage = useCallback((messageId: string, newContent: string) => {
+    if (!chatState.activeRoom) return;
+
+    setChatState(prev => ({
+      ...prev,
+      rooms: prev.rooms.map(room =>
+        room.id === prev.activeRoom?.id
+          ? {
+              ...room,
+              messages: room.messages.map(message =>
+                message.id === messageId
+                  ? {
+                      ...message,
+                      content: newContent,
+                      edited: true,
+                      editedAt: new Date(),
+                    }
+                  : message
+              ),
+            }
+          : room
+      ),
+      activeRoom: prev.activeRoom
+        ? {
+            ...prev.activeRoom,
+            messages: prev.activeRoom.messages.map(message =>
+              message.id === messageId
+                ? {
+                    ...message,
+                    content: newContent,
+                    edited: true,
+                    editedAt: new Date(),
+                  }
+                : message
+            ),
+          }
+        : null,
+    }));
+  }, [chatState.activeRoom]);
+
+  const deleteMessage = useCallback((messageId: string) => {
+    if (!chatState.activeRoom) return;
+
+    setChatState(prev => ({
+      ...prev,
+      rooms: prev.rooms.map(room =>
+        room.id === prev.activeRoom?.id
+          ? {
+              ...room,
+              messages: room.messages.filter(message => message.id !== messageId),
+            }
+          : room
+      ),
+      activeRoom: prev.activeRoom
+        ? {
+            ...prev.activeRoom,
+            messages: prev.activeRoom.messages.filter(message => message.id !== messageId),
+          }
+        : null,
+    }));
+  }, [chatState.activeRoom]);
+
   // Simulate receiving messages
   useEffect(() => {
     const interval = setInterval(() => {
@@ -199,6 +381,12 @@ export const useChat = () => {
               }
             : prev.activeRoom,
         }));
+
+        // Show notification if not in active room or window is not focused
+        const room = prev.rooms.find(r => r.id === 'room-1');
+        if (room && (prev.activeRoom?.id !== 'room-1' || document.hidden)) {
+          showMessageNotification(randomUser.name, randomMessage, room.name);
+        }
       }
     }, 5000);
 
@@ -210,5 +398,42 @@ export const useChat = () => {
     sendMessage,
     selectRoom,
     setUserName,
+    updateUser,
+    addReaction,
+    removeReaction,
+    setTyping,
+    editMessage,
+    deleteMessage,
   };
+};
+
+// Helper function to update reactions
+const updateReactions = (reactions: Reaction[], emoji: string, userId: string, add: boolean): Reaction[] => {
+  const existingReaction = reactions.find(r => r.emoji === emoji);
+  
+  if (existingReaction) {
+    if (add) {
+      if (!existingReaction.users.includes(userId)) {
+        return reactions.map(r =>
+          r.emoji === emoji
+            ? { ...r, users: [...r.users, userId], count: r.count + 1 }
+            : r
+        );
+      }
+    } else {
+      const newUsers = existingReaction.users.filter(id => id !== userId);
+      if (newUsers.length === 0) {
+        return reactions.filter(r => r.emoji !== emoji);
+      }
+      return reactions.map(r =>
+        r.emoji === emoji
+          ? { ...r, users: newUsers, count: newUsers.length }
+          : r
+      );
+    }
+  } else if (add) {
+    return [...reactions, { emoji, users: [userId], count: 1 }];
+  }
+  
+  return reactions;
 };

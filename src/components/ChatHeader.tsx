@@ -1,12 +1,15 @@
 import React from 'react';
 import { ChatRoom } from '../types';
-import { Hash, Users, MoreHorizontal, Search, Phone, Video } from 'lucide-react';
+import { Hash, Users, MoreHorizontal, Search, Phone, Video, Moon, Sun } from 'lucide-react';
 
 interface ChatHeaderProps {
   activeRoom: ChatRoom | null;
+  onSearchClick: () => void;
+  isDarkMode: boolean;
+  onToggleDarkMode: () => void;
 }
 
-export const ChatHeader: React.FC<ChatHeaderProps> = ({ activeRoom }) => {
+export const ChatHeader: React.FC<ChatHeaderProps> = ({ activeRoom, onSearchClick, isDarkMode, onToggleDarkMode }) => {
   if (!activeRoom) {
     return (
       <div className="h-16 border-b border-gray-200 bg-white flex items-center justify-center">
@@ -44,6 +47,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ activeRoom }) => {
       <div className="flex items-center gap-2">
         <button
           type="button"
+          onClick={onSearchClick}
           className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
           title="Search messages"
         >
@@ -64,6 +68,15 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ activeRoom }) => {
           title="Video call"
         >
           <Video className="w-5 h-5" />
+        </button>
+        
+        <button
+          type="button"
+          onClick={onToggleDarkMode}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
         
         <button
