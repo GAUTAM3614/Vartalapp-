@@ -1,0 +1,25 @@
+steps:
+  # Build the web app
+  - name: 'node:18'
+    entrypoint: npm
+    args: ['install']
+    dir: '.'
+
+  - name: 'node:18'
+    entrypoint: npm
+    args: ['run', 'build']
+    dir: '.'
+
+  # Build Android APK
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['run', '--rm', '-v', '/workspace:/workspace', '-w', '/workspace/android', 'openjdk:11', 'bash', '-c', 'apt-get update && apt-get install -y gradle && gradle assembleRelease']
+
+  # Upload APK to Firebase App Distribution
+  - name: 'gcr.io/firebase/firebase-tools'
+    args: ['appdistribution:distribute', 'android/app/build/outputs/apk/release/app-release.apk', '--app', 'your-firebase-app-id', '--groups', 'testers', '--release-notes', 'Vartalapp Chat - Built with Cloud Build']
+
+  # Deploy web app to Firebase Hosting
+  - name: 'gcr.io/firebase/firebase-tools'
+    args: ['deploy', '--only', 'hosting']
+
+timeout: '20m'

@@ -1,4 +1,4 @@
-import React from 'react';
+// ... existing code ...
 import { useChat } from './hooks/useChat';
 import { ChatSidebar } from './components/ChatSidebar';
 import { ChatHeader } from './components/ChatHeader';
